@@ -28,6 +28,11 @@ import {
   highlightSpecialChars,
   keymap,
   lineNumbers,
+  Tooltip,
+  TooltipView,
+  hoverTooltip,
+  showTooltip,
+  tooltips,
   rectangularSelection,
 } from '@codemirror/view';
 
@@ -62,6 +67,7 @@ export class AppComponent implements AfterViewInit {
     let myEditorElement = this.myEditor.nativeElement;
     let myExt: Extension = [
       basicSetup,
+      wordHover,
       java(),
       oneDark,
       autocompletion({ override: [this.myCompletions, this.myCompletions3] }),
@@ -96,7 +102,39 @@ if (something() >= 100.00) {
       parent: myEditorElement,
     });
   }
+  myHoverTooltip(view, pos, side) {
+    let { from, to, text } = view.state.doc.lineAt(pos);
+    let start = pos;
+    let end = pos;
 
+    while (start > from && /\w/.test(text[start - from - 1])) {
+      start--;
+    }
+    while (end < to && /\w/.test(text[end - from])) {
+      end++;
+    }
+    if ((start === pos && side < 0) || (end === pos && side > 0)) {
+      return null;
+    }
+
+    console.log(
+      'hovertooltip',
+      view,
+      pos,
+      side,
+      view.state.doc.slice(start, end)
+    );
+    return {
+      pos: start,
+      end,
+      above: true,
+      create(view) {
+        let dom = document.createElement('div');
+        dom.textContent = view.state.doc.slice(start, end)[0];
+        return { dom };
+      },
+    };
+  }
   myCompletions(context) {
     let before = context.matchBefore(/\w+/);
     // If completion wasn't explicitly started and there
@@ -133,3 +171,36 @@ function myCompletions(context: CompletionContext) {
     ],
   };
 }
+export const wordHover: Extension = hoverTooltip((view, pos, side) => {
+  let { from, to, text } = view.state.doc.lineAt(pos);
+  let start = pos;
+  let end = pos;
+
+  while (start > from && /\w/.test(text[start - from - 1])) {
+    start--;
+  }
+  while (end < to && /\w/.test(text[end - from])) {
+    end++;
+  }
+  if ((start === pos && side < 0) || (end === pos && side > 0)) {
+    return null;
+  }
+
+  console.log(
+    'hovertooltip',
+    view,
+    pos,
+    side,
+    view.state.doc.slice(start, end)
+  );
+  return {
+    pos: start,
+    end,
+    above: true,
+    create(view) {
+      let dom = document.createElement('div');
+      dom.textContent = view.state.doc.slice(start, end)[0];
+      return { dom };
+    },
+  };
+});
